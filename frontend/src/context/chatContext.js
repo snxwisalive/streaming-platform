@@ -6,67 +6,50 @@ import { authService } from "../services/authService";
 const ChatContext = createContext();
 
 export const ChatProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
-  const [chats, setChats] = useState([]);
-  const [requests, setRequests] = useState([]);
+  const [socket,        setSocket       ] = useState(null);
+  const [chats,         setChats        ] = useState([]);
+  const [requests,      setRequests     ] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [messages,      setMessages     ] = useState([]);
+  const [isChatOpen,    setIsChatOpen   ] = useState(false);
 
   const currentUser = authService.getCurrentUser();
 
   useEffect(() => {
     if (!currentUser) return;
-
     const s = io("http://localhost:5000", {
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5
+      reconnectionAttempts: 5,
     });
-    
     setSocket(s);
-
-    return () => {
-      s.disconnect();
-    };
+    return () => s.disconnect();
   }, [currentUser?.user_id]);
 
   useEffect(() => {
     if (!socket) return;
-
     const handleNewMessage = (msg) => {
       if (msg.chat_id === currentChatId) {
         setMessages((prev) => [...prev, msg]);
       }
-
       setChats((prev) =>
-        prev.map((c) =>
-          c.chat_id === msg.chat_id
-            ? { ...c, last_message: msg.text, last_message_at: msg.created_at }
-            : c
-        )
+        prev.map((c) => c.chat_id === msg.chat_id
+          ? { ...c, last_message: msg.text, last_message_at: msg.created_at }
+          : c)
       );
       setRequests((prev) =>
-        prev.map((r) =>
-          r.chat_id === msg.chat_id
-            ? { ...r, last_message: msg.text, last_message_at: msg.created_at }
-            : r
-        )
+        prev.map((r) => r.chat_id === msg.chat_id
+          ? { ...r, last_message: msg.text, last_message_at: msg.created_at }
+          : r)
       );
     };
-
     socket.on("new_message", handleNewMessage);
-
-    return () => {
-      socket.off("new_message", handleNewMessage);
-    };
+    return () => socket.off("new_message", handleNewMessage);
   }, [socket, currentChatId]);
 
-  useEffect(() => {
-    const toggle = () => setIsChatOpen(prev => !prev);
-    window.addEventListener("openChatPanel", toggle);
-    return () => window.removeEventListener("openChatPanel", toggle);
-  }, []);
+  /* ВАЖЛИВО: listener тут видалено —
+     toggle обробляється лише в FloatingChatButton,
+     щоб уникнути подвійного спрацьовування */
 
   const loadChats = useCallback(async () => {
     if (!currentUser) return;
@@ -126,10 +109,7 @@ export const ChatProvider = ({ children }) => {
       setIsChatOpen(true);
       const data = await fetchAPI(`/chats/${chatId}/messages`);
       setMessages(data);
-
-      if (socket) {
-        socket.emit("join_chat", chatId);
-      }
+      if (socket) socket.emit("join_chat", chatId);
     } catch (err) {
       console.error("Failed to open chat", err);
     }
@@ -143,39 +123,24 @@ export const ChatProvider = ({ children }) => {
 
   const sendMessage = useCallback((chatId, text) => {
     if (!socket || !currentUser) return;
-    socket.emit("send_message", {
-      chatId,
-      senderId: currentUser.user_id,
-      text,
-    });
+    socket.emit("send_message", { chatId, senderId: currentUser.user_id, text });
   }, [socket, currentUser?.user_id]);
 
   const startNewChat = useCallback(async (targetUserId) => {
     if (!currentUser) return;
-    
     const validTargetUserId = Number(targetUserId);
-    
     if (!validTargetUserId || isNaN(validTargetUserId)) {
-        console.error("Invalid targetUserId:", targetUserId);
-        throw new Error("Invalid user ID");
+      console.error("Invalid targetUserId:", targetUserId);
+      throw new Error("Invalid user ID");
     }
-
-    console.log("Starting chat with user:", validTargetUserId);
-    
     try {
       const chat = await fetchAPI("/chats/start", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetUserId: validTargetUserId }),
       });
-      
-      console.log("Chat created:", chat);
-      
       await loadChats();
       await openChat(chat.chat_id);
-      
       return chat;
     } catch (err) {
       console.error("Failed to start chat", err);
@@ -184,24 +149,16 @@ export const ChatProvider = ({ children }) => {
   }, [currentUser?.user_id, loadChats, openChat]);
 
   return (
-    <ChatContext.Provider
-      value={{
-        chats,
-        requests,
-        isChatOpen,
-        loadChats,
-        loadRequests,
-        acceptRequest,
-        ignoreRequest,
-        deleteChat,
-        currentChatId,
-        openChat,
-        closeChat,
-        messages,
-        sendMessage,
-        startNewChat,
-      }}
-    >
+    <ChatContext.Provider value={{
+      chats, requests,
+      isChatOpen, setIsChatOpen,
+      loadChats, loadRequests,
+      acceptRequest, ignoreRequest, deleteChat,
+      currentChatId,
+      openChat, closeChat,
+      messages, sendMessage,
+      startNewChat,
+    }}>
       {children}
     </ChatContext.Provider>
   );
