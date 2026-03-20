@@ -39,12 +39,18 @@ export const findUserChatsWithLastMessage = async userId => {
         SELECT
             c.chat_id,
             u.user_id,
-            u.nickname,
-            u.avatar_url,
+            CASE
+                WHEN u.user_id IS NULL OR u.deleted_at IS NOT NULL OR u.is_active = false THEN 'Deleted user'
+                ELSE u.nickname
+            END AS nickname,
+            CASE
+                WHEN u.user_id IS NULL OR u.deleted_at IS NOT NULL OR u.is_active = false THEN NULL
+                ELSE u.avatar_url
+            END AS avatar_url,
             m.text AS last_message,
             m.created_at AS last_message_at
         FROM chats c
-        JOIN users u
+        LEFT JOIN users u
           ON u.user_id = CASE
               WHEN c.user1_id = $1 THEN c.user2_id
               ELSE c.user1_id
@@ -73,12 +79,18 @@ export const findUserChatRequests = async userId => {
         SELECT
             c.chat_id,
             u.user_id,
-            u.nickname,
-            u.avatar_url,
+            CASE
+                WHEN u.user_id IS NULL OR u.deleted_at IS NOT NULL OR u.is_active = false THEN 'Deleted user'
+                ELSE u.nickname
+            END AS nickname,
+            CASE
+                WHEN u.user_id IS NULL OR u.deleted_at IS NOT NULL OR u.is_active = false THEN NULL
+                ELSE u.avatar_url
+            END AS avatar_url,
             m.text AS last_message,
             m.created_at AS last_message_at
         FROM chats c
-        JOIN users u
+        LEFT JOIN users u
           ON u.user_id = CASE
               WHEN c.user1_id = $1 THEN c.user2_id
               ELSE c.user1_id

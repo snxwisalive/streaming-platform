@@ -5,6 +5,10 @@ import { authService } from "../services/authService";
 
 const ChatContext = createContext();
 
+const SOCKET_URL = process.env.REACT_APP_API_URL
+    ? process.env.REACT_APP_API_URL.replace(/\/api\/?$/, "")
+    : "http://localhost:5000";
+
 export const ChatProvider = ({ children }) => {
   const [socket,        setSocket       ] = useState(null);
   const [chats,         setChats        ] = useState([]);
@@ -17,7 +21,7 @@ export const ChatProvider = ({ children }) => {
 
   useEffect(() => {
     if (!currentUser) return;
-    const s = io(window.location.origin, {
+    const s = io(SOCKET_URL, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
@@ -72,6 +76,29 @@ export const ChatProvider = ({ children }) => {
     }
   }, [currentUser?.user_id]);
 
+  // Refresh REST-backed lists (chats/requests) after server-side changes.
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleChatDataChanged = async ({ chatId } = {}) => {
+      try {
+        await loadChats();
+        await loadRequests();
+
+        // If this chat is currently opened, refresh full message history.
+        if (chatId && currentChatId && String(chatId) === String(currentChatId)) {
+          const data = await fetchAPI(`/chats/${chatId}/messages`);
+          setMessages(data);
+        }
+      } catch (err) {
+        console.error("Failed to refresh chat data", err);
+      }
+    };
+
+    socket.on("chat_data_changed", handleChatDataChanged);
+    return () => socket.off("chat_data_changed", handleChatDataChanged);
+  }, [socket, currentChatId, loadChats, loadRequests]);
+
   const acceptRequest = useCallback(async (chatId) => {
     try {
       await fetchAPI(`/chats/${chatId}/accept`, { method: "POST" });
@@ -107,9 +134,12 @@ export const ChatProvider = ({ children }) => {
     try {
       setCurrentChatId(chatId);
       setIsChatOpen(true);
+
+      // Join room after state update to avoid missing real-time events during initial fetch.
+      if (socket) socket.emit("join_chat", chatId);
+
       const data = await fetchAPI(`/chats/${chatId}/messages`);
       setMessages(data);
-      if (socket) socket.emit("join_chat", chatId);
     } catch (err) {
       console.error("Failed to open chat", err);
     }
@@ -150,6 +180,7 @@ export const ChatProvider = ({ children }) => {
 
   return (
     <ChatContext.Provider value={{
+      socket,
       chats, requests,
       isChatOpen, setIsChatOpen,
       loadChats, loadRequests,

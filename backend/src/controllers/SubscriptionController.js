@@ -6,6 +6,7 @@ import {
     getSubscribedVideos
 } from '../db/subscription.repository.js';
 import { getUserById } from '../db/user.repository.js';
+import { getIo } from "../socket.js";
 
 export const subscribeToUser = async (req, res) => {
     try {
@@ -26,6 +27,8 @@ export const subscribeToUser = async (req, res) => {
         }
 
         const subscription = await subscribe(subscriberId, channelId);
+
+        getIo()?.emit("subscriptions_changed", { channelId, subscriberId });
 
         res.status(200).json({
             message: 'Subscribed successfully',
@@ -48,6 +51,8 @@ export const unsubscribeFromUser = async (req, res) => {
         }
 
         const removed = await unsubscribe(subscriberId, channelId);
+
+        getIo()?.emit("subscriptions_changed", { channelId, subscriberId });
 
         res.status(200).json({
             message: 'Unsubscribed successfully',

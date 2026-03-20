@@ -113,6 +113,7 @@ const ProfilePage = () => {
     const [selectedVideoId, setSelectedVideoId ] = useState(null);
     const [editingVideo,    setEditingVideo    ] = useState(null);
     const [loading,         setLoading         ] = useState(true);
+    const [accountNotFound, setAccountNotFound] = useState(false);
     const [activeTab,       setActiveTab       ] = useState("home");
     const [isSubscribed,    setIsSubscribed    ] = useState(false);
     const [subscribing,     setSubscribing     ] = useState(false);
@@ -125,6 +126,7 @@ const ProfilePage = () => {
         const loadData = async () => {
             try {
                 setLoading(true);
+                setAccountNotFound(false);
                 if (isOwnProfile) {
                     const [videosRes, meRes] = await Promise.all([
                         fetchAPI("/videos/me", { method: "GET" }),
@@ -133,10 +135,17 @@ const ProfilePage = () => {
                     if (Array.isArray(videosRes))  setVideos(videosRes);
                     else if (videosRes?.videos)    setVideos(videosRes.videos);
                     else                           setVideos([]);
-                    if (meRes) setUserInfo(meRes);
+                    if (meRes) {
+                        setUserInfo(meRes);
+                    } else {
+                        setAccountNotFound(true);
+                        setUserInfo(null);
+                        setVideos([]);
+                        return;
+                    }
                 } else {
-                    const data     = await fetchAPI(`/videos/user/${userId}`, { method: "GET" });
                     const userData = await fetchAPI(`/users/${userId}`,       { method: "GET" });
+                    const data     = await fetchAPI(`/videos/user/${userId}`, { method: "GET" });
                     if (Array.isArray(data))            setVideos(data);
                     else if (Array.isArray(data.videos)) setVideos(data.videos);
                     else                                setVideos([]);
@@ -152,6 +161,11 @@ const ProfilePage = () => {
                 }
             } catch (err) {
                 console.error("Failed to fetch data", err);
+                const msg = String(err?.message || err);
+                if (msg.includes("User not found")) {
+                    setAccountNotFound(true);
+                    setUserInfo(null);
+                }
                 setVideos([]);
             } finally {
                 setLoading(false);
@@ -236,6 +250,26 @@ const ProfilePage = () => {
         ? Number(userInfo.subscriber_count).toLocaleString("uk-UA") : "0";
 
     if (loading) return <p className="profile-loading">Завантаження...</p>;
+
+    if (accountNotFound) {
+        if (isMobile) {
+            return (
+                <div className="m-profile-page">
+                    <div className="m-content">
+                        <p className="m-empty">Акаунт не знайдено</p>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="profile-page">
+                <div className="profile-content">
+                    <p className="profile-videos-empty">Акаунт не знайдено</p>
+                </div>
+            </div>
+        );
+    }
 
     /* ══════════════════════════════════════════════════════════════════════
        MOBILE LAYOUT  (< 768px)

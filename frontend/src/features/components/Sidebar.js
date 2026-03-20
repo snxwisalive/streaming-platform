@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { fetchAPI, getUploadsBaseUrl } from "../../services/api";
 import useLiveStreams from "../../hooks/useLiveStreams";
+import { useChat } from "../../context/chatContext";
 import "../../styles/Sidebar.css";
 import "../../styles/LiveStream.css";
 
@@ -13,28 +14,36 @@ export default function Sidebar({ open, onToggle }) {
     const [popularTags, setPopularTags] = useState([]);
     const [loading, setLoading] = useState(true);
     const [tagsLoading, setTagsLoading] = useState(true);
+    const { socket } = useChat();
     const { liveStreams } = useLiveStreams(true);
 
     // Build a Set of currently live user_ids for quick lookup
     const liveUserIds = new Set(liveStreams.map((s) => s.user_id));
 
-    useEffect(() => {
-        let cancelled = false;
-        const load = async () => {
-            try {
-                const data = await fetchAPI("/subscriptions/me", { method: "GET" });
-                if (!cancelled && data?.subscriptions) {
-                    setFollowedChannels(data.subscriptions);
-                }
-            } catch (err) {
-                if (!cancelled) setFollowedChannels([]);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-        load();
-        return () => { cancelled = true; };
+    const loadSubscriptions = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await fetchAPI("/subscriptions/me", { method: "GET" });
+            if (data?.subscriptions) setFollowedChannels(data.subscriptions);
+            else setFollowedChannels([]);
+        } catch (err) {
+            setFollowedChannels([]);
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        loadSubscriptions();
+    }, [loadSubscriptions]);
+
+    // Real-time: update sidebar subscriptions when subscribe/unsubscribe happens.
+    useEffect(() => {
+        if (!socket) return;
+        const handle = () => { loadSubscriptions(); };
+        socket.on("subscriptions_changed", handle);
+        return () => socket.off("subscriptions_changed", handle);
+    }, [socket, loadSubscriptions]);
 
     useEffect(() => {
         if (!open) return;

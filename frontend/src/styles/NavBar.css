@@ -49,7 +49,7 @@
   background: rgba(0, 0, 0, 0.05);
 }
 .navbar-link.active {
-  color: #9147ff;
+  color: #6046F6;
   position: relative;
 }
 .navbar-link.active::after {
@@ -59,7 +59,7 @@
   right: 14px;
   bottom: 4px;
   height: 2px;
-  background: #9147ff;
+  background: #6046F6;
   border-radius: 1px;
 }
 .navbar-search {
@@ -75,7 +75,7 @@
   transition: border-color 0.2s, background 0.2s;
 }
 .navbar-search:focus-within {
-  border-color: #9147ff;
+  border-color: #6046F6;
   background: #fff;
 }
 .navbar-search-input {
@@ -93,7 +93,7 @@
 .navbar-search-btn {
   padding: 8px 12px;
   border: none;
-  background: #9147ff;
+  background: #6046F6;
   color: #fff;
   cursor: pointer;
   display: flex;
@@ -124,7 +124,7 @@
 }
 
 .navbar-icon-btn.active {
-  color: #9147ff;
+  color: #6046F6;
 }
 
 .navbar-icon-btn:hover {
@@ -148,7 +148,7 @@
   transition: border-color 0.2s;
 }
 .navbar-profile-link:hover .navbar-profile {
-  border-color: #9147ff;
+  border-color: #6046F6;
 }
 .navbar-profile-placeholder {
   width: 36px;
@@ -164,7 +164,7 @@
   transition: border-color 0.2s;
 }
 .navbar-profile-link:hover .navbar-profile-placeholder {
-  border-color: #9147ff;
+  border-color: #6046F6;
 }
 
 /* ─── МОБІЛЬНИЙ НАВБАР (знизу, < 768px) ──────────────────────────────────── */

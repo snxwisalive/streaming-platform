@@ -18,6 +18,8 @@ import FloatingChatButton from "./features/components/FloatingChatButton";
 import NavBar from "./features/components/NavBar";
 import Sidebar from "./features/components/Sidebar";
 import LandingPage from "./pages/LandingPage";
+import ReactivatePage from "./pages/ReactivatePage";
+import DeleteAccountPage from "./pages/DeleteAccountPage";
 
 const AUTH_PATHS = ["/login", "/register", "/password-reset"];
 
@@ -31,13 +33,13 @@ function ChatComponents({ user }) {
     return <FloatingChatButton />;
 }
 
-function LayoutWithNav({ user, children }) {
+function LayoutWithNav({ user, children, onUserUpdate }) {
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = React.useState(true);
     const showNav = user && !isAuthPath(location.pathname);
     return (
         <div className="app-layout">
-            {showNav && <NavBar user={user} />}
+            {showNav && <NavBar user={user} onUserUpdate={onUserUpdate} />}
             {showNav ? (
                 <div className="app-body">
                     <Sidebar open={sidebarOpen} onToggle={() => setSidebarOpen((o) => !o)} />
@@ -82,13 +84,15 @@ export default function App() {
     return (
         <ChatProvider>
             <Router>
-                <LayoutWithNav user={user}>
+                <LayoutWithNav user={user} onUserUpdate={setUser}>
                     <Routes>
                         <Route path="/login" element={<LoginPage onLogin={(u) => setUser(u)} />} />
                         <Route path="/register" element={<RegisterPage onRegister={(u) => setUser(u)} />} />
                         <Route path="/profile/:userId" element={<ProfilePage />} />
                         <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/login" replace />} />
                         <Route path="/settings" element={user ? <SettingsPage onProfileUpdate={setUser} onLogout={() => setUser(null)} /> : <Navigate to="/login" replace />} />
+                        <Route path="/reactivate" element={<ReactivatePage onLogin={setUser} />} />
+                        <Route path="/delete-account" element={<DeleteAccountPage onLogin={setUser} onLogout={() => setUser(null)} />} />
                         <Route path="/live" element={<LivePage />} />
                         <Route path="/stream/:userId" element={<StreamPage />} />
                         <Route path="/upload" element={<UploadVideoPage />} />

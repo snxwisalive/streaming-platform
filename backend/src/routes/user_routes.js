@@ -8,6 +8,10 @@ import {
     updateMe,
     uploadMyAvatar,
     uploadMyBanner,
+    deactivateMe,
+    reactivateMe,
+    deleteMe,
+    cancelDeletion,
 } from '../controllers/UserController.js';
 import { authenticateToken } from '../middleware/auth.middleware.js';
 import { uploadAvatar } from '../config/avatarUpload.config.js';
@@ -23,5 +27,9 @@ router.post('/me/avatar', authenticateToken, uploadAvatar.single('avatar'), uplo
 router.post('/me/banner', authenticateToken, uploadBanner.single('banner'), uploadMyBanner);
 router.get('/:id', getUser);
 router.patch('/me', authenticateToken, updateMe);
+router.post('/me/deactivate', authenticateToken, deactivateMe);
+router.post('/me/reactivate', reactivateMe); // no auth required
+router.post('/me/delete', authenticateToken, deleteMe);
+router.post('/me/cancel-deletion', cancelDeletion); // no auth required
 
 export default router;

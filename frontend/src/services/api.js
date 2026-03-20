@@ -34,12 +34,30 @@ export const fetchAPI = async (endpoint, options = {}) => {
         }
 
         if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
+            let msg = 'Request failed';
+            if (data && typeof data === 'object') {
+                if ('message' in data) msg = data.message;
+                else if ('error' in data) msg = data.error;
+                else msg = JSON.stringify(data);
+            } else if (data != null) {
+                msg = data;
+            }
+
+            const shouldClearAuth =
+                response.status === 401 ||
+                (response.status === 403 && (
+                    String(msg).includes("Invalid token") ||
+                    String(msg).includes("Token expired") ||
+                    String(msg).includes("Access token required")
+                ));
+
+            if (shouldClearAuth) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 window.dispatchEvent(new Event('unauthorized'));
             }
-            throw new Error(data.message || data || 'Request failed');
+
+            throw new Error(String(msg || 'Request failed'));
         }
 
         return data;

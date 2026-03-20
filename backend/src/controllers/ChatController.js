@@ -9,6 +9,7 @@ import {
     deleteChat
 } from "../db/chat.repository.js";
 import { getChatMessages } from "../db/message.repository.js";
+import { getIo } from "../socket.js";
 
 export const startChat = async (req, res) => {
     try {
@@ -37,6 +38,7 @@ export const startChat = async (req, res) => {
             chat = await createChat(currentUserId, validTargetUserId, currentUserId);
         }
 
+        getIo()?.emit("chat_data_changed", { chatId: chat.chat_id });
         res.json(chat);
     } catch (error) {
         console.error("Error in startChat:", error);
@@ -96,6 +98,7 @@ export const acceptRequest = async (req, res) => {
         if (!ok) {
             return res.status(404).json({ message: "Request not found or already handled" });
         }
+        getIo()?.emit("chat_data_changed", { chatId });
         res.json({ success: true });
     } catch (error) {
         console.error("Error in acceptRequest:", error);
@@ -114,6 +117,7 @@ export const ignoreRequest = async (req, res) => {
         if (!ok) {
             return res.status(404).json({ message: "Request not found or already handled" });
         }
+        getIo()?.emit("chat_data_changed", { chatId });
         res.json({ success: true });
     } catch (error) {
         console.error("Error in ignoreRequest:", error);
@@ -132,6 +136,7 @@ export const deleteChatController = async (req, res) => {
         if (!ok) {
             return res.status(404).json({ message: "Chat not found" });
         }
+        getIo()?.emit("chat_data_changed", { chatId });
         res.json({ success: true });
     } catch (error) {
         console.error("Error in deleteChatController:", error);

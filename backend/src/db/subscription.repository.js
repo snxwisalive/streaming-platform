@@ -43,6 +43,8 @@ export const getUserSubscriptions = async (subscriberId) => {
          FROM subscriptions s
          JOIN users u ON s.channel_id = u.user_id
          WHERE s.subscriber_id = $1
+           AND u.is_active = true
+           AND u.deleted_at IS NULL
          ORDER BY s.created_at DESC`,
         [subscriberId]
     );
@@ -60,6 +62,8 @@ export const getSubscribedVideos = async (subscriberId, limit = 20, offset = 0) 
          JOIN subscriptions s ON v.user_id = s.channel_id
          JOIN users u ON v.user_id = u.user_id
          WHERE s.subscriber_id = $1
+           AND u.is_active = true
+           AND u.deleted_at IS NULL
            AND v.is_public = true
            AND v.is_active = true
          ORDER BY v.created_at DESC
@@ -68,5 +72,18 @@ export const getSubscribedVideos = async (subscriberId, limit = 20, offset = 0) 
     );
 
     return rows;
+};
+
+export const removeSubscriptionsByUserId = async (userId) => {
+    const { rowCount } = await pool.query(
+        `
+        DELETE FROM subscriptions
+        WHERE subscriber_id = $1
+           OR channel_id = $1
+        `,
+        [userId]
+    );
+
+    return rowCount;
 };
 

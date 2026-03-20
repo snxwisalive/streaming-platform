@@ -49,6 +49,7 @@ export const searchUsersByNickname = async (query, limit = 20) => {
          FROM users u
          LEFT JOIN subscriptions s ON u.user_id = s.channel_id
          WHERE u.is_active = true
+           AND u.deleted_at IS NULL
            AND u.nickname ILIKE $1
          GROUP BY u.user_id
          ORDER BY u.nickname ASC
@@ -70,6 +71,7 @@ export const getAllUsers = async () => {
          FROM users u
          LEFT JOIN subscriptions s ON u.user_id = s.channel_id
          WHERE u.is_active = true
+           AND u.deleted_at IS NULL
          GROUP BY u.user_id`
     );
     return rows;
@@ -87,6 +89,7 @@ export const getRecommendedUsersForSubscriber = async (subscriberId, limit = 10)
          FROM users u
          LEFT JOIN subscriptions s ON u.user_id = s.channel_id
          WHERE u.is_active = true
+           AND u.deleted_at IS NULL
            AND u.user_id <> $1
            AND NOT EXISTS (
               SELECT 1
@@ -115,7 +118,9 @@ export const getUserById = async (id) => {
             COALESCE(COUNT(s.subscription_id), 0) as subscriber_count
          FROM users u
          LEFT JOIN subscriptions s ON u.user_id = s.channel_id
-         WHERE u.user_id = $1 AND u.is_active = true
+         WHERE u.user_id = $1
+           AND u.is_active = true
+           AND u.deleted_at IS NULL
          GROUP BY u.user_id`,
         [id]
     );

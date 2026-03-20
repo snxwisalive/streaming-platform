@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { getUploadsBaseUrl } from "../../services/api";
+import { getUploadsBaseUrl, fetchAPI } from "../../services/api";
 import "../../styles/NavBar.css";
 import { useChat } from "../../context/chatContext";
+import { authService } from "../../services/authService";
 
 function useWindowWidth() {
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
@@ -14,13 +15,13 @@ function useWindowWidth() {
   return width;
 }
 
-export default function NavBar({ user }) {
+export default function NavBar({ user, onUserUpdate }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchInput, setSearchInput] = useState("");
     const width = useWindowWidth();
     const isMobile = width < 768;
-    const { isChatOpen } = useChat();
+    const { isChatOpen, socket } = useChat();
 
     const searchParams = new URLSearchParams(location.search || "");
     const isFollowing = searchParams.get("feed") === "subscriptions" && location.pathname === "/";
@@ -40,10 +41,33 @@ export default function NavBar({ user }) {
         }
     };
 
-    if (!user) return null;
-
     const profilePath = "/profile";
-    const avatarSrc = user.avatar_url ? getUploadsBaseUrl() + user.avatar_url : null;
+    const avatarSrc = user?.avatar_url ? getUploadsBaseUrl() + user.avatar_url : null;
+
+    // Realtime update of avatar_url in navbar (other tabs).
+    useEffect(() => {
+        if (!socket || !user?.user_id || !onUserUpdate) return;
+
+        const handler = async ({ userId } = {}) => {
+            if (String(userId) !== String(user?.user_id)) return;
+            try {
+                const me = await fetchAPI("/users/me", { method: "GET" });
+                if (!me) return;
+
+                onUserUpdate((prev) => ({ ...(prev || {}), ...me }));
+                const stored = authService.getCurrentUser() || {};
+                localStorage.setItem("user", JSON.stringify({ ...stored, ...me }));
+            } catch (err) {
+                // fetchAPI already clears token for auth-related failures.
+                console.error("Failed to refresh user after avatar update", err);
+            }
+        };
+
+        socket.on("user_profile_changed", handler);
+        return () => socket.off("user_profile_changed", handler);
+    }, [socket, user?.user_id, onUserUpdate]);
+
+    if (!user) return null;
 
     // ===== МОБІЛЬНИЙ НАВБАР (знизу) =====
     if (isMobile) {

@@ -20,9 +20,22 @@ export default function LoginPage({ onLogin }) {
   const width = useWindowWidth();
   const isMobile = width < 768;
 
-  const handleSuccess = (user) => {
+  const handleSuccess = (data) => {
+    const user = data?.user || data;
     onLogin?.(user);
+    if (data?.reactivated) {
+      window.alert("Ваш акаунт було відновлено");
+    }
     navigate("/");
+  };
+
+  const handleError = (msg) => {
+    const m = String(msg || "");
+    if (m === "account_deactivated") {
+      navigate("/reactivate");
+      return;
+    }
+    setError(msg);
   };
 
   if (isMobile) {
@@ -42,7 +55,7 @@ export default function LoginPage({ onLogin }) {
 
         {/* Форма */}
         {error && <div className="error">{error}</div>}
-        <LoginForm onSuccess={handleSuccess} onError={setError} />
+        <LoginForm onSuccess={handleSuccess} onError={handleError} />
 
         {/* Дії */}
         <div className="login-mobile-actions">
@@ -87,7 +100,7 @@ export default function LoginPage({ onLogin }) {
         <img src="/logo-full.svg" alt="Logo" className="login-logo" />
         {error && <div className="error">{error}</div>}
         <h1 className="login-right-title">Увійти</h1>
-        <LoginForm onSuccess={handleSuccess} onError={setError} />
+        <LoginForm onSuccess={handleSuccess} onError={handleError} />
         <div className="login-actions">
           <button type="button" className="login-forgot-btn" onClick={() => navigate("/password-reset")}>
             Забули пароль?

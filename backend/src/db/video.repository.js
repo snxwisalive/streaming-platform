@@ -85,7 +85,9 @@ export const getVideoById = async (videoId) => {
          FROM videos v
          JOIN users u ON v.user_id = u.user_id
          WHERE v.video_id = $1
-           AND v.is_active = true`,
+           AND v.is_active = true
+           AND u.is_active = true
+           AND u.deleted_at IS NULL`,
         [videoId]
     );
 
@@ -107,7 +109,10 @@ export const getUserVideos = async (userId, includePrivate = false) => {
             u.nickname, u.avatar_url
         FROM videos v
         JOIN users u ON v.user_id = u.user_id
-        WHERE v.user_id = $1 AND v.is_active = true
+        WHERE v.user_id = $1
+          AND v.is_active = true
+          AND u.is_active = true
+          AND u.deleted_at IS NULL
     `;
 
     if (!includePrivate) {
@@ -137,7 +142,10 @@ export const getAllPublicVideos = async (limit = 20, offset = 0) => {
             u.nickname, u.avatar_url
          FROM videos v
          JOIN users u ON v.user_id = u.user_id
-         WHERE v.is_public = true AND v.is_active = true
+         WHERE v.is_public = true
+           AND v.is_active = true
+           AND u.is_active = true
+           AND u.deleted_at IS NULL
          ORDER BY v.created_at DESC
          LIMIT $1 OFFSET $2`,
         [limit, offset]
@@ -309,6 +317,7 @@ export const getPopularTags = async (limit = 10) => {
          FROM tags t
          JOIN video_tags vt ON t.tag_id = vt.tag_id
          JOIN videos v ON v.video_id = vt.video_id AND v.is_public = true AND v.is_active = true
+         JOIN users u ON v.user_id = u.user_id AND u.is_active = true AND u.deleted_at IS NULL
          GROUP BY t.tag_id, t.name
          ORDER BY video_count DESC, t.name
          LIMIT $1`,
@@ -347,6 +356,8 @@ export const searchVideos = async (searchQuery, limit = 20, offset = 0) => {
          LEFT JOIN tags t ON vt.tag_id = t.tag_id
          WHERE v.is_public = true 
            AND v.is_active = true
+           AND u.is_active = true
+           AND u.deleted_at IS NULL
            AND (
                similarity(LOWER(v.title), LOWER($1)) > 0.1
                OR similarity(LOWER(t.name), LOWER($1)) > 0.1

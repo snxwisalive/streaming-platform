@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import app from './app.js';
 import http from 'http';
 import { Server } from 'socket.io';
+import { setIo } from './socket.js';
+import { startDeleteAccountsCron } from './cron/deleteAccounts.js';
 
 dotenv.config();
 
@@ -16,6 +18,10 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
+
+setIo(io);
+
+startDeleteAccountsCron();
 
 io.on("connection", (socket) => {
     console.log("Новий користувач підключився:", socket.id);
@@ -32,6 +38,8 @@ io.on("connection", (socket) => {
         );
 
         io.to(`chat_${chatId}`).emit("new_message", message);
+        // Make sure chat lists/requests update even if recipients didn't open the room yet.
+        io.emit("chat_data_changed", { chatId });
     });
 
     /* ── Stream chat (in-memory, no DB) ── */

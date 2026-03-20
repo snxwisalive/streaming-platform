@@ -8,6 +8,7 @@ import {
   createUser,
   findUserByEmail,
   findUserByNickname,
+  updateUser,
 } from "../db/user.repository.js";
 
 export const register = async (req, res) => {
@@ -121,6 +122,47 @@ export const login = async (req, res) => {
     const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid login or password" });
+    }
+
+    // Deactivation vs deletion rules:
+    // 1) Deactivation: is_active=false AND deleted_at IS NULL
+    if (user.is_active === false && !user.deleted_at) {
+      return res.status(403).json({ error: "account_deactivated" });
+    }
+
+    // 2) Deletion: deleted_at is set
+    if (user.deleted_at) {
+      const now = new Date();
+      const scheduledAt = user.deletion_scheduled_at ? new Date(user.deletion_scheduled_at) : null;
+
+      // Grace period: auto-reactivate and return flag.
+      if (scheduledAt && scheduledAt.getTime() > now.getTime()) {
+        await updateUser(user.user_id, {
+          is_active: true,
+          deleted_at: null,
+          deletion_scheduled_at: null,
+        });
+
+        const reactivatedToken = generateToken({
+          user_id: user.user_id,
+          nickname: user.nickname,
+          email: user.email,
+        });
+
+        return res.json({
+          user: {
+            user_id: user.user_id,
+            nickname: user.nickname,
+            email: user.email,
+            birthday: user.birth_date,
+          },
+          token: reactivatedToken,
+          reactivated: true,
+        });
+      }
+
+      // Outside grace period => irreversible deletion
+      return res.status(403).json({ error: "Акаунт було остаточно видалено" });
     }
 
     const token = generateToken({
