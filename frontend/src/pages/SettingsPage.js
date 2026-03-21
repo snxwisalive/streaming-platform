@@ -46,7 +46,7 @@ export default function SettingsPage({ onProfileUpdate, onLogout }) {
 
     useEffect(() => {
         const load = async () => {
-            if (!authService.getCurrentUser()) { navigate("/login"); return; }
+            if (!authService.getToken()) { navigate("/login"); return; }
             try {
                 const data = await fetchAPI("/users/me", { method: "GET" });
                 setUser(data);
@@ -54,6 +54,24 @@ export default function SettingsPage({ onProfileUpdate, onLogout }) {
                 setBio(data.bio || "");
                 if (data.avatar_url) setAvatarPreview(getUploadsBaseUrl() + data.avatar_url);
                 if (data.banner_url) setBannerPreview(getUploadsBaseUrl() + data.banner_url);
+
+                try {
+                    const streamData = await fetchAPI("/streams/me/key", { method: "GET" });
+                    setStreamKey(streamData?.stream_key || null);
+                    setRtmpUrl(streamData?.rtmp_url || null);
+                } catch {
+                    setStreamKey(null);
+                    setRtmpUrl(null);
+                }
+
+                try {
+                    const status = await fetchAPI(`/streams/status/${data.user_id}`, { method: "GET" });
+                    setStreamTitle(status?.stream_title || "");
+                    setStreamDescription(status?.stream_description || "");
+                } catch {
+                    setStreamTitle("");
+                    setStreamDescription("");
+                }
             } catch {
                 setError("Не вдалося завантажити профіль.");
             } finally {
@@ -62,26 +80,6 @@ export default function SettingsPage({ onProfileUpdate, onLogout }) {
         };
         load();
     }, [navigate]);
-
-    useEffect(() => {
-        const loadStreamKey = async () => {
-            try {
-                const data = await fetchAPI("/streams/me/key", { method: "GET" });
-                setStreamKey(data.stream_key || null);
-                setRtmpUrl(data.rtmp_url || null);
-            } catch { /* silent */ }
-        };
-        const loadStreamInfo = async () => {
-            try {
-                const me = authService.getCurrentUser();
-                if (!me) return;
-                const data = await fetchAPI(`/streams/status/${me.user_id}`, { method: "GET" });
-                setStreamTitle(data.stream_title || "");
-                setStreamDescription(data.stream_description || "");
-            } catch { /* silent */ }
-        };
-        if (authService.getCurrentUser()) { loadStreamKey(); loadStreamInfo(); }
-    }, []);
 
     const handleAvatarChange = (e) => {
         const file = e.target.files?.[0];
@@ -109,39 +107,33 @@ export default function SettingsPage({ onProfileUpdate, onLogout }) {
             if (avatarFile) {
                 const form = new FormData();
                 form.append("avatar", avatarFile);
-                const updated = await fetchAPI("/users/me/avatar", { method: "POST", body: form });
-                setUser((u) => ({ ...u, ...updated }));
-                const stored = authService.getCurrentUser();
-                if (stored) {
-                    localStorage.setItem("user", JSON.stringify({ ...stored, ...updated }));
-                    onProfileUpdate?.({ ...stored, ...updated });
-                }
+                await fetchAPI("/users/me/avatar", { method: "POST", body: form });
                 setAvatarFile(null);
             }
             if (bannerFile) {
                 const form = new FormData();
                 form.append("banner", bannerFile);
-                const updated = await fetchAPI("/users/me/banner", { method: "POST", body: form });
-                setUser((u) => ({ ...u, ...updated }));
-                const stored = authService.getCurrentUser();
-                if (stored) {
-                    localStorage.setItem("user", JSON.stringify({ ...stored, ...updated }));
-                    onProfileUpdate?.({ ...stored, ...updated });
-                }
+                await fetchAPI("/users/me/banner", { method: "POST", body: form });
                 setBannerFile(null);
             }
             const payload = {};
             if (nickname.trim() !== (user?.nickname || "")) payload.nickname = nickname.trim();
             if (bio !== (user?.bio || "")) payload.bio = bio;
             if (Object.keys(payload).length > 0) {
-                const updated = await fetchAPI("/users/me", { method: "PATCH", body: payload });
-                setUser((u) => ({ ...u, ...updated }));
-                const stored = authService.getCurrentUser();
-                if (stored) {
-                    localStorage.setItem("user", JSON.stringify({ ...stored, ...updated }));
-                    onProfileUpdate?.({ ...stored, ...updated });
-                }
+                await fetchAPI("/users/me", { method: "PATCH", body: payload });
             }
+
+            const fresh = await fetchAPI("/users/me", { method: "GET" });
+            setUser(fresh);
+            setNickname(fresh.nickname || "");
+            setBio(fresh.bio || "");
+            if (fresh.avatar_url) setAvatarPreview(getUploadsBaseUrl() + fresh.avatar_url);
+            if (fresh.banner_url) setBannerPreview(getUploadsBaseUrl() + fresh.banner_url);
+
+            const stored = authService.getCurrentUser() || {};
+            localStorage.setItem("user", JSON.stringify({ ...stored, ...fresh }));
+            onProfileUpdate?.({ ...stored, ...fresh });
+
             setSuccess("Зміни збережено.");
         } catch (err) {
             const msg = err.message || "Помилка збереження.";

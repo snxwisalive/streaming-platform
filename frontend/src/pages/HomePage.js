@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { fetchAPI, getUploadsBaseUrl } from "../services/api";
 import VideoCard from "../features/components/VideoCard";
@@ -6,6 +6,83 @@ import VideoModal from "../features/components/VideoModal";
 import LiveStreamCard from "../features/components/LiveStreamCard";
 import useLiveStreams from "../hooks/useLiveStreams";
 import "../styles/HomePage.css";
+
+/* ── placeholder data (shown when real content is sparse) ────────────────── */
+
+const PLACEHOLDER_STREAMS = [
+  { user_id: "ph-1", nickname: "s0mcs",    stream_title: "green astra main in 2026 | !sens !aim !val...", avatar_url: "https://api.dicebear.com/9.x/pixel-art/svg?seed=s0mcs",    preview_img: "https://picsum.photos/seed/s0mcs-val/600/338",    _placeholder: true },
+  { user_id: "ph-2", nickname: "ELVI",     stream_title: "[DROPS] ◆ !1440p ◆ !ae ◆ New Gacha...",           avatar_url: "https://api.dicebear.com/9.x/pixel-art/svg?seed=ELVI",     preview_img: "https://picsum.photos/seed/elvi-gacha/600/338",    _placeholder: true },
+  { user_id: "ph-3", nickname: "relaxcis", stream_title: "TH ComeBack Sa Ranked playing radi...",           avatar_url: "https://api.dicebear.com/9.x/pixel-art/svg?seed=relaxcis", preview_img: "https://picsum.photos/seed/relaxcis-th/600/338", _placeholder: true },
+  { user_id: "ph-4", nickname: "TenZ",     stream_title: "Ranked grind | !settings !crosshair",             avatar_url: "https://api.dicebear.com/9.x/pixel-art/svg?seed=TenZ",     preview_img: "https://picsum.photos/seed/tenz-ranked/600/338", _placeholder: true },
+  { user_id: "ph-5", nickname: "Horcus",   stream_title: "FPL PRACTICE | !coach !rank",                    avatar_url: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Horcus",   preview_img: "https://picsum.photos/seed/horcus-fpl/600/338",  _placeholder: true },
+];
+
+const PLACEHOLDER_CATEGORIES = [
+  { id: "cat-1", name: "Clash Royale",            viewers: "2.6 тис.",  img_url: "https://static-cdn.jtvnw.net/ttv-boxart/Clash%20Royale-140x190.jpg" },
+  { id: "cat-2", name: "Dead by Daylight",        viewers: "23 тис.",   img_url: "https://cdn.cloudflare.steamstatic.com/steam/apps/381210/header.jpg" },
+  { id: "cat-3", name: "World of Warcraft",       viewers: "101 тис.",  img_url: "https://static-cdn.jtvnw.net/ttv-boxart/World%20of%20Warcraft-140x190.jpg" },
+  { id: "cat-4", name: "Arena Breakout: Infinite",viewers: "18 тис.",   img_url: "https://static-cdn.jtvnw.net/ttv-boxart/Arena%20Breakout%3A%20Infinite.jpg" },
+  { id: "cat-5", name: "Overwatch 2",             viewers: "9.6 тис.",  img_url: "https://static-cdn.jtvnw.net/ttv-boxart/Overwatch%202-140x190.jpg" },
+  { id: "cat-6", name: "Fortnite",                viewers: "17 тис.",   img_url: "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-140x190.jpg" },
+  { id: "cat-7", name: "Hogwarts Legacy",         viewers: "24 тис.",   img_url: "https://cdn.cloudflare.steamstatic.com/steam/apps/990080/header.jpg" },
+];
+
+/* ── helpers ─────────────────────────────────────────────────────────────── */
+
+function SectionHeader({ accent, title, showMore, onShowMore }) {
+  return (
+    <div className="home-section-header">
+      <h2 className="home-section-title">
+        {accent && <span className="home-section-accent">{accent}</span>}
+        {title}
+      </h2>
+      {showMore && (
+        <button type="button" className="home-show-more" onClick={onShowMore}>
+          показати ще
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function HScrollRow({ children }) {
+  const ref = useRef(null);
+  return (
+    <div className="home-hscroll-wrap">
+      <div className="home-hscroll" ref={ref}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CategoryCard({ category }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <div className="cat-card">
+      <div className="cat-card__cover">
+        {category.img_url && !imgError ? (
+          <img
+            src={category.img_url}
+            alt={category.name}
+            className="cat-card__img"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <span className="cat-card__letter">{category.name.charAt(0)}</span>
+        )}
+      </div>
+      <p className="cat-card__name">{category.name}</p>
+      <p className="cat-card__viewers">
+        <span className="cat-card__dot" />
+        {category.viewers}
+      </p>
+    </div>
+  );
+}
+
+/* ── main component ──────────────────────────────────────────────────────── */
 
 export default function HomePage({ user }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,7 +98,13 @@ export default function HomePage({ user }) {
   const [searchQuery, setSearchQuery] = useState(urlQ || "");
   const [isSearching, setIsSearching] = useState(!!urlQ);
 
+  const [liveExpanded, setLiveExpanded] = useState(false);
+  const [videosExpanded, setVideosExpanded] = useState(false);
+
   const { liveStreams } = useLiveStreams(!!user);
+
+  const LIVE_PREVIEW = 4;
+  const VIDEOS_PREVIEW = 8;
 
   const loadVideos = async (type = "all") => {
     try {
@@ -43,23 +126,6 @@ export default function HomePage({ user }) {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    const q = searchQuery.trim();
-    if (q) {
-      setSearchParams((p) => {
-        const next = new URLSearchParams(p);
-        next.set("q", q);
-        next.delete("feed");
-        return next;
-      });
-    } else {
-      setSearchParams({});
-      setIsSearching(false);
-      loadVideos(feedType);
-    }
-  };
-
   const handleClearSearch = () => {
     setSearchQuery("");
     setIsSearching(false);
@@ -67,13 +133,11 @@ export default function HomePage({ user }) {
     loadVideos(feedType);
   };
 
-  // Sync feed type from URL
   useEffect(() => {
     const feed = urlFeed === "subscriptions" ? "subscriptions" : "all";
     setFeedType(feed);
   }, [urlFeed]);
 
-  // Sync search from URL and run search when q is present
   useEffect(() => {
     if (urlQ != null && urlQ !== searchQuery) {
       setSearchQuery(urlQ);
@@ -120,97 +184,68 @@ export default function HomePage({ user }) {
     setSelectedVideoId(null);
   };
 
+  const visibleLive = liveExpanded ? liveStreams : liveStreams.slice(0, LIVE_PREVIEW);
+  const visibleVideos = videosExpanded ? videos : videos.slice(0, VIDEOS_PREVIEW);
+
+  // Merge real live streams (first) with placeholders to fill the row
+  const mergedStreams = [
+    ...liveStreams,
+    ...PLACEHOLDER_STREAMS.filter(
+      (ph) => !liveStreams.some((r) => r.user_id === ph.user_id)
+    ),
+  ];
+  const visibleMergedStreams = liveExpanded
+    ? mergedStreams
+    : mergedStreams.slice(0, Math.max(LIVE_PREVIEW, liveStreams.length));
+
   return (
     <div className="home-container">
-      <div className="home-header-row">
-        <h1 className="home-header-title">
-          {isSearching
-            ? `Результати пошуку: "${searchQuery}"`
-            : feedType === "subscriptions"
-            ? "Підписки"
-            : "Рекомендації"}
-        </h1>
-
-        <div className="home-header-buttons">
-          {user && !isSearching && (
-            <>
-              <button
-                type="button"
-                onClick={() => setSearchParams({})}
-                className={`home-toggle-btn ${feedType === "all" ? "active" : ""}`}
-              >
-                Всі відео
-              </button>
-              <button
-                type="button"
-                onClick={() => setSearchParams({ feed: "subscriptions" })}
-                className={`home-toggle-btn ${feedType === "subscriptions" ? "active" : ""}`}
-              >
-                Підписки
-              </button>
-            </>
-          )}
-          {isSearching && (
-            <button
-              type="button"
-              onClick={handleClearSearch}
-              className="home-clear-search-btn"
-            >
-              Очистити пошук
-            </button>
-          )}
+      {loading && (
+        <div className="home-loading">
+          <div className="home-spinner" />
         </div>
-      </div>
+      )}
 
-      <form onSubmit={handleSearch} className="home-search-form">
-        <input
-          type="text"
-          placeholder="Пошук за назвою, тегами або нікнеймом..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="home-search-input"
-        />
-        <button type="submit" className="home-search-button">
-          Пошук
-        </button>
-      </form>
-
-      {loading && <p>Завантаження...</p>}
-
-      {/* Search results: Content (streams + videos) and People (only if any) */}
+      {/* ── Search results ────────────────────────────────────────────── */}
       {!loading && isSearching && (
         <>
-          {/* Content section: live streams matching query + videos */}
-          <section className="home-search-section">
-            <h2 className="home-search-section-title">Контент</h2>
-            {searchStreams.length > 0 && (
-              <div className="home-live-grid">
+          <div className="home-section-header home-search-sticky-header">
+            <h2 className="home-section-title">
+              Результати пошуку: <span className="home-section-accent">"{searchQuery}"</span>
+            </h2>
+            <button type="button" className="home-clear-search-btn" onClick={handleClearSearch}>
+              Очистити пошук
+            </button>
+          </div>
+
+          {searchStreams.length > 0 && (
+            <section className="home-section">
+              <SectionHeader accent="Активні канали" title="" />
+              <HScrollRow>
                 {searchStreams.map((s) => (
                   <LiveStreamCard key={s.user_id} stream={s} />
                 ))}
-              </div>
-            )}
-            <div className="home-videos-grid">
-              {videos.map((v) => (
-                <VideoCard key={v.video_id} video={v} onClick={handleVideoClick} />
-              ))}
-            </div>
-            {searchStreams.length === 0 && videos.length === 0 && (
-              <p className="home-search-empty">Нічого не знайдено за вашим запитом.</p>
-            )}
-          </section>
+              </HScrollRow>
+            </section>
+          )}
 
-          {/* People section: only when there are users */}
+          {videos.length > 0 && (
+            <section className="home-section">
+              <SectionHeader accent="Відео" title="" />
+              <div className="home-videos-grid">
+                {videos.map((v) => (
+                  <VideoCard key={v.video_id} video={v} onClick={handleVideoClick} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {searchUsers.length > 0 && (
-            <section className="home-search-section">
-              <h2 className="home-search-section-title">Користувачі</h2>
+            <section className="home-section">
+              <SectionHeader accent="Користувачі" title="" />
               <div className="home-search-users">
                 {searchUsers.map((u) => (
-                  <Link
-                    key={u.user_id}
-                    to={`/profile/${u.user_id}`}
-                    className="home-search-user-card"
-                  >
+                  <Link key={u.user_id} to={`/profile/${u.user_id}`} className="home-search-user-card">
                     <div className="home-search-user-avatar">
                       {u.avatar_url ? (
                         <img src={getUploadsBaseUrl() + u.avatar_url} alt="" />
@@ -229,38 +264,71 @@ export default function HomePage({ user }) {
               </div>
             </section>
           )}
+
+          {searchStreams.length === 0 && videos.length === 0 && searchUsers.length === 0 && (
+            <p className="home-search-empty">Нічого не знайдено за вашим запитом.</p>
+          )}
         </>
       )}
 
-      {/* Non-search: Live streams */}
-      {!loading && liveStreams.length > 0 && !isSearching && (
-        <section className="home-live-section">
-          <h2 className="home-live-title">
-            <span className="ls-player__badge">LIVE</span>
-            Зараз у прямому ефірі
-          </h2>
-          <div className="home-live-grid">
-            {liveStreams.map((s) => (
-              <LiveStreamCard key={s.user_id} stream={s} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!loading && !isSearching && videos.length === 0 && (
-        <p>
-          {feedType === "subscriptions"
-            ? "Немає відео з каналів, на які ви підписані."
-            : "Немає доступних відео."}
-        </p>
-      )}
-
+      {/* ── Feed (non-search) ─────────────────────────────────────────── */}
       {!loading && !isSearching && (
-        <div className="home-videos-grid">
-          {videos.map((v) => (
-            <VideoCard key={v.video_id} video={v} onClick={handleVideoClick} />
-          ))}
-        </div>
+        <>
+          {/* Active channels — real streams first, then placeholders */}
+          <section className="home-section">
+            <SectionHeader
+              accent="Активні канали"
+              title=", які можуть вам сподобатися"
+              showMore={!liveExpanded && mergedStreams.length > LIVE_PREVIEW}
+              onShowMore={() => setLiveExpanded(true)}
+            />
+            <HScrollRow>
+              {visibleMergedStreams.map((s) => (
+                <LiveStreamCard key={s.user_id} stream={s} placeholder={!!s._placeholder} />
+              ))}
+            </HScrollRow>
+          </section>
+
+          {/* Categories */}
+          <section className="home-section">
+            <SectionHeader
+              accent="Категорії"
+              title=", які можуть вам сподобатися"
+              showMore
+              onShowMore={() => {}}
+            />
+            <HScrollRow>
+              {PLACEHOLDER_CATEGORIES.map((c) => (
+                <CategoryCard key={c.id} category={c} />
+              ))}
+            </HScrollRow>
+          </section>
+
+          {/* Videos */}
+          {videos.length > 0 && (
+            <section className="home-section">
+              <SectionHeader
+                accent={feedType === "subscriptions" ? "Відео з підписок" : "Рекомендовані відео"}
+                title=""
+                showMore={!videosExpanded && videos.length > VIDEOS_PREVIEW}
+                onShowMore={() => setVideosExpanded(true)}
+              />
+              <div className="home-videos-grid">
+                {visibleVideos.map((v) => (
+                  <VideoCard key={v.video_id} video={v} onClick={handleVideoClick} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {videos.length === 0 && liveStreams.length === 0 && (
+            <p className="home-empty">
+              {feedType === "subscriptions"
+                ? "Немає відео з каналів, на які ви підписані."
+                : "Немає доступних відео."}
+            </p>
+          )}
+        </>
       )}
 
       {selectedVideoId && (
@@ -269,9 +337,7 @@ export default function HomePage({ user }) {
           onClose={handleCloseModal}
           onVideoUpdate={() => loadVideos(feedType)}
           onVideoDelete={() => {
-            setVideos((prev) =>
-              prev.filter((v) => v.video_id !== selectedVideoId),
-            );
+            setVideos((prev) => prev.filter((v) => v.video_id !== selectedVideoId));
             handleCloseModal();
           }}
         />

@@ -24,13 +24,22 @@ export const fetchAPI = async (endpoint, options = {}) => {
 
     try {
         const response = await fetch(url, config);
-        
-        let data;
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
-        } else {
-            data = await response.text();
+
+        const contentType = response.headers.get('content-type') || '';
+        const rawText = await response.text();
+
+        let data = null;
+        if (rawText.length > 0) {
+            if (contentType.includes('application/json')) {
+                try {
+                    data = JSON.parse(rawText);
+                } catch {
+                    // Some backend paths may incorrectly label non-JSON as JSON.
+                    data = rawText;
+                }
+            } else {
+                data = rawText;
+            }
         }
 
         if (!response.ok) {
@@ -39,7 +48,13 @@ export const fetchAPI = async (endpoint, options = {}) => {
                 localStorage.removeItem('user');
                 window.dispatchEvent(new Event('unauthorized'));
             }
-            throw new Error(data.message || data || 'Request failed');
+
+            const message =
+                (data && typeof data === 'object' && data.message) ||
+                (typeof data === 'string' && data) ||
+                `Request failed with status ${response.status}`;
+
+            throw new Error(message);
         }
 
         return data;

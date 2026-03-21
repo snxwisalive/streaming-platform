@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { authService } from "../../services/authService";
+import { fetchAPI } from "../../services/api";
+import { useChat } from "../../context/chatContext";
 import "../../styles/StreamChat.css";
 
 const SOCKET_URL = process.env.REACT_APP_API_URL
@@ -10,9 +13,31 @@ const SOCKET_URL = process.env.REACT_APP_API_URL
 export default function StreamChat({ streamUserId }) {
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
+    const [nickMenu, setNickMenu] = useState(null);
     const socketRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const menuRef = useRef(null);
     const currentUser = authService.getCurrentUser();
+    const navigate = useNavigate();
+    const { startNewChat } = useChat();
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadHistory = async () => {
+            try {
+                const data = await fetchAPI(`/streams/${streamUserId}/chat/messages?limit=200`, { method: "GET" });
+                if (!cancelled) {
+                    setMessages(Array.isArray(data?.messages) ? data.messages : []);
+                }
+            } catch (err) {
+                if (!cancelled) setMessages([]);
+            }
+        };
+
+        loadHistory();
+        return () => { cancelled = true; };
+    }, [streamUserId]);
 
     useEffect(() => {
         const s = io(SOCKET_URL, {
@@ -25,7 +50,10 @@ export default function StreamChat({ streamUserId }) {
         s.emit("join_stream_chat", streamUserId);
 
         s.on("stream_chat_message", (msg) => {
-            setMessages((prev) => [...prev.slice(-200), msg]); // keep last 200
+            setMessages((prev) => {
+                const next = [...prev, msg];
+                return next.slice(-200);
+            });
         });
 
         return () => {
@@ -38,14 +66,52 @@ export default function StreamChat({ streamUserId }) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
+                setNickMenu(null);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleNickClick = (msg, event) => {
+        if (!msg?.user_id) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        setNickMenu({
+            userId: msg.user_id,
+            nickname: msg.nickname,
+            top: rect.bottom + 6,
+            left: rect.left,
+        });
+    };
+
+    const handleStartPrivateChat = async () => {
+        if (!nickMenu?.userId) return;
+        try {
+            await startNewChat(nickMenu.userId);
+            setNickMenu(null);
+        } catch (err) {
+            console.error("Failed to start private chat", err);
+        }
+    };
+
+    const handleGoToChannel = () => {
+        if (!nickMenu?.userId) return;
+        navigate(`/profile/${nickMenu.userId}`);
+        setNickMenu(null);
+    };
+
     const handleSend = () => {
         const trimmed = text.trim();
         if (!trimmed || !socketRef.current) return;
 
         socketRef.current.emit("stream_chat_message", {
             streamUserId,
-            nickname: currentUser?.nickname || "Анонім",
             text: trimmed,
+            token: authService.getToken(),
         });
         setText("");
     };
@@ -68,13 +134,37 @@ export default function StreamChat({ streamUserId }) {
                     <p className="stream-chat__empty">Поки що немає повідомлень. Напишіть перше!</p>
                 )}
                 {messages.map((msg) => (
-                    <div key={msg.id} className="stream-chat__msg">
-                        <span className="stream-chat__msg-nick">{msg.nickname}</span>
+                    <div key={msg.message_id || msg.id} className="stream-chat__msg">
+                        <button
+                            type="button"
+                            className="stream-chat__msg-nick"
+                            onClick={(e) => handleNickClick(msg, e)}
+                        >
+                            {msg.nickname}
+                        </button>
                         <span className="stream-chat__msg-text">{msg.text}</span>
                     </div>
                 ))}
                 <div ref={messagesEndRef} />
             </div>
+
+            {nickMenu && (
+                <div
+                    ref={menuRef}
+                    className="stream-chat__nick-menu"
+                    style={{ top: nickMenu.top, left: nickMenu.left }}
+                >
+                    <div className="stream-chat__nick-menu-title">{nickMenu.nickname}</div>
+                    {currentUser?.user_id !== nickMenu.userId && (
+                        <button type="button" className="stream-chat__nick-menu-item" onClick={handleStartPrivateChat}>
+                            Написати повідомлення
+                        </button>
+                    )}
+                    <button type="button" className="stream-chat__nick-menu-item" onClick={handleGoToChannel}>
+                        Перейти на канал
+                    </button>
+                </div>
+            )}
 
             <div className="stream-chat__input-wrap">
                 {currentUser ? (

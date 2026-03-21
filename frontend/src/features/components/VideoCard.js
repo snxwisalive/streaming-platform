@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import "../../styles/VideoCard.css";
 
 const VideoCard = ({ video, isOwner, onClick, onEdit, onDelete }) => {
   const navigate = useNavigate();
@@ -24,197 +25,88 @@ const VideoCard = ({ video, isOwner, onClick, onEdit, onDelete }) => {
   };
 
   return (
-    <div
-      className="video-card"
-      style={{
-        width: "250px",
-        margin: "10px",
-        cursor: "pointer",
-        display: "inline-block",
-        position: "relative",
-      }}
-      onClick={() => onClick(video.video_id)}
-    >
+    <div className="vc" onClick={() => onClick(video.video_id)}>
       {/* Thumbnail */}
-      <div
-        style={{
-          position: "relative",
-          paddingBottom: "56.25%",
-          backgroundColor: "#000",
-        }}
-      >
+      <div className="vc__thumb">
         {video.thumbnail_url ? (
-          <img
-            src={video.thumbnail_url}
-            alt={video.title}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
+          <img src={video.thumbnail_url} alt={video.title} className="vc__thumb-img" />
         ) : (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundColor: "#333",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-            }}
-          >
-            No Thumbnail
+          <div className="vc__thumb-placeholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          </div>
+        )}
+
+        {/* Owner menu */}
+        {isOwner && (
+          <div ref={menuRef} className="vc__menu-wrap" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="vc__menu-btn"
+              title="Інше"
+            >
+              <MenuIcon />
+            </button>
+
+            {menuOpen && (
+              <div className="vc__menu-dropdown">
+                <button
+                  onClick={() => { setMenuOpen(false); onEdit?.(video); }}
+                  className="vc__menu-item"
+                >
+                  Редагувати
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onDelete?.(video.video_id); }}
+                  className="vc__menu-item vc__menu-item--danger"
+                >
+                  Видалити
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Views overlay */}
+        <span className="vc__views-badge">
+          {formatViews(video.views_count)} переглядів
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="vc__body">
+        <h4 className="vc__title">{video.title}</h4>
+
+        {video.nickname && (
+          <p className="vc__author" onClick={handleUserClick}>
+            {video.nickname}
+          </p>
+        )}
+
+        {/* Tags */}
+        {video.tags && video.tags.length > 0 && (
+          <div className="vc__tags" onClick={(e) => e.stopPropagation()}>
+            {video.tags.slice(0, 3).map((tag) => (
+              <span key={tag.tag_id || tag.name} className="vc__tag">
+                {tag.name}
+              </span>
+            ))}
+            {video.tags.length > 3 && (
+              <span className="vc__tag-more">+{video.tags.length - 3}</span>
+            )}
           </div>
         )}
       </div>
-
-      {/* Меню */}
-      {isOwner && (
-        <div
-          ref={menuRef}
-          style={{
-            position: "absolute",
-            top: "6px",
-            right: "6px",
-            zIndex: 20,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              border: "none",
-              background: "rgba(0,0,0,0.6)",
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: "18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-            }}
-            title="Інше"
-          >
-            <MenuIcon />
-          </button>
-
-          {menuOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: "32px",
-                right: 0,
-                backgroundColor: "#fff",
-                borderRadius: "6px",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-                overflow: "hidden",
-                minWidth: "140px",
-              }}
-            >
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  onEdit?.(video);
-                }}
-                style={menuButtonStyle}
-              >
-                Редагувати
-              </button>
-
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDelete?.(video.video_id);
-                }}
-                style={{ ...menuButtonStyle, color: "#dc3545" }}
-              >
-                Видалити
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Info */}
-      <h4 style={{ margin: "6px 0" }}>{video.title}</h4>
-
-      {video.nickname && (
-        <p
-          onClick={handleUserClick}
-          style={{
-            fontSize: "12px",
-            color: "#6441A5",
-            margin: "4px 0",
-            cursor: "pointer",
-          }}
-        >
-          {video.nickname}
-        </p>
-      )}
-
-      <p style={{ fontSize: "12px", color: "#555" }}>
-        {video.views_count} views
-      </p>
-
-      {/* Tags */}
-      {video.tags && video.tags.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "4px",
-            marginTop: "8px",
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {video.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag.tag_id || tag.name}
-              style={{
-                fontSize: "10px",
-                padding: "2px 6px",
-                backgroundColor: "#6441A5",
-                color: "#fff",
-                borderRadius: "3px",
-                display: "inline-block",
-              }}
-            >
-              {tag.name}
-            </span>
-          ))}
-          {video.tags.length > 3 && (
-            <span
-              style={{
-                fontSize: "10px",
-                padding: "2px 6px",
-                color: "#6441A5",
-              }}
-            >
-              +{video.tags.length - 3}
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 };
 
-const menuButtonStyle = {
-  width: "100%",
-  padding: "8px 12px",
-  border: "none",
-  background: "none",
-  textAlign: "left",
-  cursor: "pointer",
-  fontSize: "14px",
-};
+function formatViews(n) {
+  const num = Number(n) || 0;
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + " тис.";
+  return String(num);
+}
 
 const MenuIcon = () => {
   const [imgError, setImgError] = useState(false);
@@ -228,11 +120,7 @@ const MenuIcon = () => {
       src="/other.png"
       alt="menu"
       onError={() => setImgError(true)}
-      style={{
-        width: "16px",
-        height: "16px",
-        objectFit: "contain",
-      }}
+      style={{ width: "16px", height: "16px", objectFit: "contain" }}
     />
   );
 };

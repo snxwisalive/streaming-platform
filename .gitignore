@@ -25,3 +25,8 @@ yarn-error.log*
 .env.prod
 
 **/uploads/
+
+# runtime HLS artifacts
+nginx-rtmp/hls/*.m3u8
+nginx-rtmp/hls/*.ts
+nginx-rtmp/hls/*.log

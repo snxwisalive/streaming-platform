@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import app from './app.js';
 import http from 'http';
 import { Server } from 'socket.io';
+import { verifyToken } from './utils/auth.utils.js';
+import { createStreamChatMessage } from './db/streamChat.repository.js';
 
 dotenv.config();
 
@@ -45,15 +47,31 @@ io.on("connection", (socket) => {
         socket.leave(`stream_${streamUserId}`);
     });
 
-    socket.on("stream_chat_message", ({ streamUserId, nickname, text }) => {
-        if (!text || !text.trim()) return;
-        const msg = {
-            id: `${socket.id}_${Date.now()}`,
-            nickname: nickname || "Анонім",
-            text: text.trim().slice(0, 500),
-            timestamp: Date.now(),
-        };
-        io.to(`stream_${streamUserId}`).emit("stream_chat_message", msg);
+    socket.on("stream_chat_message", async ({ streamUserId, text, token }) => {
+        try {
+            const parsedStreamUserId = Number(streamUserId);
+            const trimmed = String(text || "").trim();
+
+            if (!parsedStreamUserId || Number.isNaN(parsedStreamUserId)) return;
+            if (!trimmed) return;
+            if (!token) return;
+
+            const decoded = verifyToken(token);
+            const senderId = Number(decoded?.user_id);
+            if (!senderId || Number.isNaN(senderId)) return;
+
+            const msg = await createStreamChatMessage({
+                streamUserId: parsedStreamUserId,
+                senderId,
+                text: trimmed.slice(0, 500),
+            });
+
+            if (msg) {
+                io.to(`stream_${parsedStreamUserId}`).emit("stream_chat_message", msg);
+            }
+        } catch (error) {
+            console.error("stream_chat_message error:", error.message);
+        }
     });
 
     socket.on("disconnect", () => {

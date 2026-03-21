@@ -1,4 +1,5 @@
 import { pool } from '../db/db.js';
+import { getStreamChatMessages } from '../db/streamChat.repository.js';
 
 const RTMP_STAT_URL = process.env.RTMP_STAT_URL || 'http://nginx-rtmp/stat';
 
@@ -174,5 +175,25 @@ export const getStreamStatus = async (req, res) => {
     } catch (err) {
         console.error('getStreamStatus error:', err.message);
         res.json({ live: false });
+    }
+};
+
+/**
+ * GET /api/streams/:userId/chat/messages
+ * Public stream chat history for a channel.
+ */
+export const getStreamChatHistory = async (req, res) => {
+    try {
+        const streamUserId = Number(req.params.userId);
+        if (!streamUserId || Number.isNaN(streamUserId)) {
+            return res.status(400).json({ message: 'Invalid stream user id' });
+        }
+
+        const limit = Number(req.query.limit || 200);
+        const messages = await getStreamChatMessages(streamUserId, limit);
+        res.json({ messages });
+    } catch (err) {
+        console.error('getStreamChatHistory error:', err.message);
+        res.status(500).json({ message: 'Failed to load stream chat history' });
     }
 };

@@ -26,12 +26,22 @@ export default function LivePlayer({ url }) {
                         hls.loadSource(url);
                     });
 
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        video.muted = true;
+                        video.defaultMuted = true;
+                        video.play().catch(() => {
+                            setError('Autoplay was blocked. Press play to start the stream.');
+                        });
+                    });
+
                     hls.on(Hls.Events.ERROR, (event, data) => {
                         console.error('HLS error', event, data);
                         if (data && data.fatal) {
                             setError(`${data.type}: ${data.details}`);
                             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                                 hls.startLoad();
+                            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                                hls.recoverMediaError();
                             } else {
                                 hls.destroy();
                             }
@@ -39,6 +49,11 @@ export default function LivePlayer({ url }) {
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
+                    video.muted = true;
+                    video.defaultMuted = true;
+                    video.play().catch(() => {
+                        setError('Autoplay was blocked. Press play to start the stream.');
+                    });
                 }
             })
             .catch((err) => {
