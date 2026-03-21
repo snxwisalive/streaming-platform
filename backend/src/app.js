@@ -8,11 +8,14 @@ import subscriptionRoutes from './routes/subscription_routes.js';
 import chatRoutes from "./routes/chat_routes.js";
 import streamRoutes from "./routes/stream_routes.js";
 import analyticsRoutes from './routes/analytics_routes.js';
+import passport from './config/passport.js';
+import oauthRoutes from './routes/oauth_routes.js';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(passport.initialize());
 
 app.use('/uploads', express.static(path.resolve('uploads')));
 
@@ -23,6 +26,7 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/streams", streamRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/auth', oauthRoutes);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);

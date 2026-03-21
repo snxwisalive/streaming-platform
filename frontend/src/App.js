@@ -21,6 +21,7 @@ import LandingPage from "./pages/LandingPage";
 import ReactivatePage from "./pages/ReactivatePage";
 import DeleteAccountPage from "./pages/DeleteAccountPage";
 import ControlPanelPage from "./pages/ControlPanelPage";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 
 const AUTH_PATHS = ["/login", "/register", "/password-reset"];
 const CONTROL_PANEL_PATH = "/controlpanel";
@@ -110,6 +111,7 @@ export default function App() {
                         <Route path="/password-reset/verify" element={<VerifyCodePage />} />
                         <Route path="/password-reset/new-password" element={<ResetPasswordPage />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
+                        <Route path="/auth/callback" element={<OAuthCallbackPage onLogin={setUser} />} />
                     </Routes>
                 </LayoutWithNav>
                 <ChatComponents user={user} />

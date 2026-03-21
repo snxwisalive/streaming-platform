@@ -6,7 +6,7 @@ export const up = pgm => {
         nickname: { type: 'varchar(50)', notNull: true, unique: true },
         password_hash: { type: 'varchar(255)', notNull: true },
 
-        birth_date: { type: 'date', notNull: true },
+        birth_date: { type: 'date' },
 
         avatar_url: { type: 'varchar(500)' },
         banner_url: { type: 'varchar(500)' },

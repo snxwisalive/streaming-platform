@@ -136,10 +136,9 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-.social-button.apple { background-color: #000; }
+.social-button.google { background-color: #DB4437; }
 .social-button.discord { background-color: #5865F2; }
 .social-button.xbox { background-color: #107C10; }
-.social-button.playstation { background-color: #003791; }
 
 .social-button svg {
   width: 31px;

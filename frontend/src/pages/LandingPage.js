@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaApple, FaDiscord, FaXbox, FaPlaystation } from "react-icons/fa";
+import { FaDiscord, FaGoogle, FaXbox } from "react-icons/fa";
 import "../styles/LandingPage.css";
 
 function useWindowWidth() {
@@ -20,6 +20,14 @@ export default function LandingPage() {
   const isMobile = width < 768;
   const [mobileStarted, setMobileStarted] = useState(false);
 
+  const handleGoogleLogin = () => {
+    window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`;
+  };
+
+  const handleDiscordLogin = () => {
+    window.location.href = `${process.env.REACT_APP_API_URL}/auth/discord`;
+  };
+
   return (
     <div className="landing-container">
 
@@ -28,7 +36,6 @@ export default function LandingPage() {
         <div className="mobile-layout">
 
           {!mobileStarted ? (
-            // Початковий екран — зірка + текст + кнопка Розпочати
             <>
               <div className="star-background" />
               <div className="mobile-top" />
@@ -59,7 +66,6 @@ export default function LandingPage() {
               </div>
             </>
           ) : (
-            // Екран після натискання — новий текст + кнопки авторизації
             <div className="mobile-auth-screen">
               <p className="auth-screen-label">Ми знайшли для вас щось цікаве! Але для початку треба увійти.</p>
 
@@ -80,10 +86,9 @@ export default function LandingPage() {
                 </button>
 
                 <div className="social-buttons">
-                  <button className="social-button apple">  <FaApple size={26} color="#fff" />  </button>
-                  <button className="social-button discord"><FaDiscord size={26} color="#fff" /></button>
+                  <button className="social-button google" onClick={handleGoogleLogin}>  <FaGoogle size={26} color="#fff" />  </button>
+                  <button className="social-button discord" onClick={handleDiscordLogin}><FaDiscord size={26} color="#fff" /></button>
                   <button className="social-button xbox">   <FaXbox size={26} color="#fff" />   </button>
-                  <button className="social-button playstation"><FaPlaystation size={26} color="#fff" /></button>
                 </div>
               </div>
             </div>
@@ -128,10 +133,9 @@ export default function LandingPage() {
             </div>
 
             <div className="social-buttons">
-                  <button className="social-button apple">  <FaApple size={26} color="#fff" />  </button>
-                  <button className="social-button discord"><FaDiscord size={26} color="#fff" /></button>
+                  <button className="social-button google" onClick={handleGoogleLogin}>  <FaGoogle size={26} color="#fff" />  </button>
+                  <button className="social-button discord" onClick={handleDiscordLogin}><FaDiscord size={26} color="#fff" /></button>
                   <button className="social-button xbox">   <FaXbox size={26} color="#fff" />   </button>
-                  <button className="social-button playstation"><FaPlaystation size={26} color="#fff" /></button>
             </div>
           </div>
         </>
