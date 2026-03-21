@@ -262,4 +262,12 @@
   .mobile-nav-item.active .mobile-nav-avatar {
     border-color: #7c3aed;
   }
+
+  .mobile-nav-close {
+    background: #3a3a4a;
+  }
+
+  .mobile-nav-close:active {
+      background: #2a2a3a;
+  }
 }

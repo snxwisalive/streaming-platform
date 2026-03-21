@@ -20,11 +20,17 @@ import Sidebar from "./features/components/Sidebar";
 import LandingPage from "./pages/LandingPage";
 import ReactivatePage from "./pages/ReactivatePage";
 import DeleteAccountPage from "./pages/DeleteAccountPage";
+import ControlPanelPage from "./pages/ControlPanelPage";
 
 const AUTH_PATHS = ["/login", "/register", "/password-reset"];
+const CONTROL_PANEL_PATH = "/controlpanel";
 
 function isAuthPath(pathname) {
     return AUTH_PATHS.some((path) => pathname.startsWith(path));
+}
+
+function isNoSidebarPath(pathname) {
+    return pathname.startsWith(CONTROL_PANEL_PATH)
 }
 
 function ChatComponents({ user }) {
@@ -37,12 +43,16 @@ function LayoutWithNav({ user, children, onUserUpdate }) {
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = React.useState(true);
     const showNav = user && !isAuthPath(location.pathname);
+
     return (
         <div className="app-layout">
             {showNav && <NavBar user={user} onUserUpdate={onUserUpdate} />}
             {showNav ? (
                 <div className="app-body">
-                    <Sidebar open={sidebarOpen} onToggle={() => setSidebarOpen((o) => !o)} />
+                    {/* Звичайний сайдбар прихований на /controlpanel/* і /upload */}
+                    {!isNoSidebarPath(location.pathname) && (
+                        <Sidebar open={sidebarOpen} onToggle={() => setSidebarOpen((o) => !o)} />
+                    )}
                     <main className="app-main">{children}</main>
                 </div>
             ) : (
@@ -61,8 +71,6 @@ export default function App() {
         return () => window.removeEventListener('storage', handleStorage);
     }, []);
 
-    // Після логіну / перезавантаження оновлюємо дані користувача з бекенду,
-    // щоб у стейті (і навбарі) були актуальні avatar_url тощо.
     useEffect(() => {
         const token = authService.getToken?.();
         if (!token) return;
@@ -96,6 +104,7 @@ export default function App() {
                         <Route path="/live" element={<LivePage />} />
                         <Route path="/stream/:userId" element={<StreamPage />} />
                         <Route path="/upload" element={<UploadVideoPage />} />
+                        <Route path="/controlpanel/*" element={user ? <ControlPanelPage user={user} /> : <Navigate to="/login" replace />} />
                         <Route path="/" element={user ? <HomePage user={user} /> : <LandingPage />} />
                         <Route path="/password-reset" element={<ForgotPasswordPage />} />
                         <Route path="/password-reset/verify" element={<VerifyCodePage />} />

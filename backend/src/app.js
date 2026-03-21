@@ -7,6 +7,7 @@ import videoRoutes from './routes/video_routes.js';
 import subscriptionRoutes from './routes/subscription_routes.js';
 import chatRoutes from "./routes/chat_routes.js";
 import streamRoutes from "./routes/stream_routes.js";
+import analyticsRoutes from './routes/analytics_routes.js';
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use('/api/videos', videoRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/streams", streamRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);

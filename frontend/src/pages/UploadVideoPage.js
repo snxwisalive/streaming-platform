@@ -69,7 +69,7 @@ const UploadVideoPage = () => {
                 body: formData,
             });
             console.log('Upload successful:', data);
-            navigate('/profile');
+            navigate('/controlpanel#materials');
         } catch (err) {
             console.error('Upload error:', err);
             setError(err.message || 'Не вдалося завантажити відео');

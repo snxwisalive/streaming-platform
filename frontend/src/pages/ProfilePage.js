@@ -18,7 +18,6 @@ const TABS = [
     { id: "clips",   label: "Кліпи" },
 ];
 
-/* ── window width hook (same pattern as LandingPage) ─────────────────────── */
 function useWindowWidth() {
     const [width, setWidth] = useState(
         typeof window !== "undefined" ? window.innerWidth : 1024
@@ -32,7 +31,6 @@ function useWindowWidth() {
     return width;
 }
 
-/* ── helpers ─────────────────────────────────────────────────────────────── */
 const fmtNum = (n) => {
     if (n == null) return "0";
     const v = Number(n);
@@ -113,12 +111,13 @@ const ProfilePage = () => {
     const [selectedVideoId, setSelectedVideoId ] = useState(null);
     const [editingVideo,    setEditingVideo    ] = useState(null);
     const [loading,         setLoading         ] = useState(true);
-    const [accountNotFound, setAccountNotFound] = useState(false);
+    const [accountNotFound, setAccountNotFound ] = useState(false);
     const [activeTab,       setActiveTab       ] = useState("home");
     const [isSubscribed,    setIsSubscribed    ] = useState(false);
     const [subscribing,     setSubscribing     ] = useState(false);
     const [bioExpanded,     setBioExpanded     ] = useState(false);
     const [streamStatus,    setStreamStatus    ] = useState({ live: false, stream_key: null });
+    const [menuOpen,        setMenuOpen        ] = useState(false);
 
     /* ── data load ── */
     useEffect(() => {
@@ -146,9 +145,9 @@ const ProfilePage = () => {
                 } else {
                     const userData = await fetchAPI(`/users/${userId}`,       { method: "GET" });
                     const data     = await fetchAPI(`/videos/user/${userId}`, { method: "GET" });
-                    if (Array.isArray(data))            setVideos(data);
+                    if (Array.isArray(data))             setVideos(data);
                     else if (Array.isArray(data.videos)) setVideos(data.videos);
-                    else                                setVideos([]);
+                    else                                 setVideos([]);
                     setUserInfo(userData);
                     if (currentUser) {
                         try {
@@ -261,7 +260,6 @@ const ProfilePage = () => {
                 </div>
             );
         }
-
         return (
             <div className="profile-page">
                 <div className="profile-content">
@@ -286,9 +284,38 @@ const ProfilePage = () => {
                     />
                     <div className="m-banner-overlay" />
                     <div className="m-topbar">
-                        <button className="m-topbar-btn" onClick={() => navigate(-1)} aria-label="Назад">←</button>
                         <div className="m-topbar-spacer" />
-                        <button className="m-topbar-btn" aria-label="Меню">⋮</button>
+                        <div className="m-menu-wrap">
+                            <button
+                                className="m-topbar-btn"
+                                aria-label="Меню"
+                                onClick={() => setMenuOpen((v) => !v)}
+                            >⋮</button>
+                            {menuOpen && (
+                                <>
+                                    <div className="profile-menu-backdrop" onClick={() => setMenuOpen(false)} />
+                                    <div className="profile-menu-dropdown">
+                                        <button className="profile-menu-item" onClick={() => setMenuOpen(false)}>
+                                            <span className="profile-menu-icon">↗</span> Поділитися
+                                        </button>
+                                        {!isOwnProfile && (
+                                            <>
+                                                <button className="profile-menu-item" onClick={() => { setMenuOpen(false); handleStartChat(); }}>
+                                                    <span className="profile-menu-icon">✉</span> Написати {displayName}
+                                                </button>
+                                                <div className="profile-menu-divider" />
+                                                <button className="profile-menu-item profile-menu-item--danger" onClick={() => setMenuOpen(false)}>
+                                                    <span className="profile-menu-icon">🚫</span> Заблокувати {displayName}
+                                                </button>
+                                                <button className="profile-menu-item profile-menu-item--danger" onClick={() => setMenuOpen(false)}>
+                                                    <span className="profile-menu-icon">⚑</span> Поскаржитись на {displayName}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -336,22 +363,30 @@ const ProfilePage = () => {
                     <div className="m-actions">
                         {isOwnProfile ? (
                             <>
-                                <button className="m-btn m-btn-secondary"
-                                        onClick={() => navigate("/settings")}>
-                                    Налаштування
+                                <button
+                                    className="m-btn m-btn-secondary"
+                                    onClick={() => navigate("/settings")}
+                                    aria-label="Налаштування"
+                                    title="Налаштування"
+                                >
+                                    ⚙
                                 </button>
-                                <button className="m-btn m-btn-primary"
-                                        onClick={() => navigate("/upload")}>
-                                    Завантажити відео
+                                <button
+                                    className="m-btn m-btn-primary"
+                                    onClick={() => navigate("/controlpanel")}
+                                >
+                                    Панель керування автора
                                 </button>
                             </>
                         ) : (
                             <>
                                 <button className="m-btn m-btn-icon">▾</button>
                                 <button className="m-btn m-btn-icon">🔔</button>
-                                <button className="m-btn m-btn-secondary"
-                                        style={{ flex: 1 }}
-                                        onClick={handleStartChat}>
+                                <button
+                                    className="m-btn m-btn-secondary"
+                                    style={{ flex: 1 }}
+                                    onClick={handleStartChat}
+                                >
                                     Написати
                                 </button>
                                 <button
@@ -507,7 +542,7 @@ const ProfilePage = () => {
     }
 
     /* ══════════════════════════════════════════════════════════════════════
-       DESKTOP LAYOUT  — original code, completely untouched
+       DESKTOP LAYOUT
     ══════════════════════════════════════════════════════════════════════ */
     return (
         <div className="profile-page">
@@ -519,25 +554,42 @@ const ProfilePage = () => {
                 />
                 <div className="profile-banner-overlay">
                     <div className="profile-topbar">
-                        <button
-                            type="button"
-                            className="profile-topbar-btn"
-                            onClick={() => navigate(-1)}
-                            aria-label="Назад"
-                            title="Назад"
-                        >
-                            <span aria-hidden>←</span>
-                        </button>
                         <div className="profile-topbar-spacer" />
-                        <button
-                            type="button"
-                            className="profile-topbar-btn"
-                            aria-label="Меню"
-                            title="Меню"
-                            onClick={() => { /* reserved */ }}
-                        >
-                            <span aria-hidden>⋮</span>
-                        </button>
+                        <div className="profile-menu-wrap">
+                            <button
+                                type="button"
+                                className="profile-topbar-btn"
+                                aria-label="Меню"
+                                title="Меню"
+                                onClick={() => setMenuOpen((v) => !v)}
+                            >
+                                <span aria-hidden>⋮</span>
+                            </button>
+                            {menuOpen && (
+                                <>
+                                    <div className="profile-menu-backdrop" onClick={() => setMenuOpen(false)} />
+                                    <div className="profile-menu-dropdown">
+                                        <button className="profile-menu-item" onClick={() => setMenuOpen(false)}>
+                                            <span className="profile-menu-icon">↗</span> Поділитися
+                                        </button>
+                                        {!isOwnProfile && (
+                                            <>
+                                                <button className="profile-menu-item" onClick={() => { setMenuOpen(false); handleStartChat(); }}>
+                                                    <span className="profile-menu-icon">✉</span> Написати {displayName}
+                                                </button>
+                                                <div className="profile-menu-divider" />
+                                                <button className="profile-menu-item profile-menu-item--danger" onClick={() => setMenuOpen(false)}>
+                                                    <span className="profile-menu-icon">🚫</span> Заблокувати {displayName}
+                                                </button>
+                                                <button className="profile-menu-item profile-menu-item--danger" onClick={() => setMenuOpen(false)}>
+                                                    <span className="profile-menu-icon">⚑</span> Поскаржитись на {displayName}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     <div className="profile-info-card">
@@ -552,66 +604,65 @@ const ProfilePage = () => {
                             <h1 className="profile-name">
                                 {isOwnProfile ? "Мій профіль" : userInfo?.nickname || "Профіль"}
                             </h1>
-                            {bio && (
-                                <p className="profile-bio">{bio}</p>
-                            )}
+                            {bio && <p className="profile-bio">{bio}</p>}
                             <p className="profile-followers">{subCount} фолловерів</p>
                         </div>
                     </div>
 
-                    <div className="profile-actions">
-                        {isOwnProfile && (
+                    {isOwnProfile && (
+                        <div className="profile-actions-own">
+                            <button
+                                type="button"
+                                className="profile-btn profile-btn-follow"
+                                onClick={() => navigate("/controlpanel")}
+                            >
+                                Панель керування автора
+                            </button>
+                            <button
+                                type="button"
+                                className="profile-btn-icon-square"
+                                onClick={() => navigate("/settings")}
+                                aria-label="Налаштування"
+                                title="Налаштування"
+                            >
+                                ⚙
+                            </button>
+                        </div>
+                    )}
+
+                    {!isOwnProfile && currentUser && (
+                        <div className="profile-actions">
                             <div className="profile-actions-secondary">
                                 <button
                                     type="button"
-                                    className="profile-btn profile-btn-follow"
-                                    onClick={() => navigate("/settings")}
+                                    className="profile-btn profile-btn-subscribe-alt"
+                                    onClick={handleStartChat}
                                 >
-                                    Налаштування
+                                    Написати
                                 </button>
                                 <button
                                     type="button"
                                     className="profile-btn profile-btn-subscribe-alt"
-                                    onClick={() => navigate("/upload")}
+                                    onClick={handleToggleSubscribe}
+                                    disabled={subscribing}
                                 >
-                                    Завантажити відео
+                                    {subscribing ? "…" : isSubscribed ? "Відстежується" : "Відстежувати"}
                                 </button>
                             </div>
-                        )}
-                        {!isOwnProfile && currentUser && (
-                            <>
-                                <div className="profile-actions-secondary">
-                                    <button
-                                        type="button"
-                                        className="profile-btn profile-btn-subscribe-alt"
-                                        onClick={handleStartChat}
-                                    >
-                                        Написати
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="profile-btn profile-btn-subscribe-alt"
-                                        onClick={handleToggleSubscribe}
-                                        disabled={subscribing}
-                                    >
-                                        {subscribing ? "…" : isSubscribed ? "Відстежується" : "Відстежувати"}
-                                    </button>
-                                </div>
-                                <div className="profile-actions-primary">
-                                    <button
-                                        type="button"
-                                        className="profile-btn profile-btn-follow"
-                                        onClick={handleToggleSubscribe}
-                                        disabled={subscribing}
-                                    >
-                                        {subscribing ? "…" : isSubscribed ? "Відписатися" : "Підписатися"}
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
+                            <div className="profile-actions-primary">
+                                <button
+                                    type="button"
+                                    className="profile-btn profile-btn-follow"
+                                    onClick={handleToggleSubscribe}
+                                    disabled={subscribing}
+                                >
+                                    {subscribing ? "…" : isSubscribed ? "Відписатися" : "Підписатися"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>{/* end .profile-banner-overlay */}
+            </div>{/* end .profile-banner-wrap */}
 
             {/* Tabs */}
             <nav className="profile-tabs">

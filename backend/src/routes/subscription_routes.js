@@ -17,4 +17,3 @@ router.get('/me', authenticateToken, getMySubscriptions);
 router.get('/feed', authenticateToken, getSubscribedFeed);
 
 export default router;
-
