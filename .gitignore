@@ -23,6 +23,7 @@ yarn-error.log*
 .idea/
 .env
 .env.prod
+.env.production
 
 **/uploads/
 
