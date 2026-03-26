@@ -4,6 +4,7 @@ import { fetchAPI, getUploadsBaseUrl } from "../services/api";
 import VideoCard from "../features/components/VideoCard";
 import VideoModal from "../features/components/VideoModal";
 import LiveStreamCard from "../features/components/LiveStreamCard";
+import MobileSearchModal from "../features/components/MobileSearchModal";
 import useLiveStreams from "../hooks/useLiveStreams";
 import "../styles/HomePage.css";
 
@@ -198,8 +199,15 @@ export default function HomePage({ user }) {
     ? mergedStreams
     : mergedStreams.slice(0, Math.max(LIVE_PREVIEW, liveStreams.length));
 
+  // Check if mobile search modal should be open
+  const isMobileSearchOpen = searchParams.get("mobile-search") === "1";
+
   return (
     <div className="home-container">
+      {isMobileSearchOpen && (
+        <MobileSearchModal onClose={() => setSearchParams({})} initialQuery={searchQuery} />
+      )}
+
       {loading && (
         <div className="home-loading">
           <div className="home-spinner" />

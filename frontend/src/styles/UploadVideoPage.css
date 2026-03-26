@@ -306,7 +306,7 @@
 
 @media (max-width: 768px) {
     .upload-page {
-        padding: 20px 16px;
+        padding: 20px 16px 100px 16px;
     }
 
     .upload-field {

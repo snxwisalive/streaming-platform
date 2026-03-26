@@ -77,6 +77,7 @@ export default function NavBar({ user, onUserUpdate }) {
     const isFollowing       = searchParams.get("feed") === "subscriptions" && location.pathname === "/";
     const isRecommendations = location.pathname === "/" && !searchParams.get("feed") && !searchParams.get("q");
     const isSearch          = (location.pathname === "/" && !!searchParams.get("q")) || location.pathname === "/search";
+    const isMobileSearch    = searchParams.get("mobile-search") === "1";
     const isProfile         = location.pathname === "/profile" || location.pathname.startsWith("/profile");
 
     const handleSearch = (e) => {
@@ -176,7 +177,7 @@ export default function NavBar({ user, onUserUpdate }) {
 
                 <Link
                     to="/?search=1"
-                    className={`mobile-nav-item ${isSearch ? "active" : ""}`}
+                    className={`mobile-nav-item ${isMobileSearch ? "active" : ""}`}
                     onClick={(e) => {
                         e.preventDefault();
                         navigate("/");
@@ -227,9 +228,6 @@ export default function NavBar({ user, onUserUpdate }) {
         );
     }
 
-    /* ══════════════════════════════════════════════════════════════════════
-       ДЕСКТОПНИЙ НАВБАР
-    ══════════════════════════════════════════════════════════════════════ */
     return (
         <nav className="navbar">
             <div className="navbar-left">
