@@ -605,7 +605,7 @@ function MaterialsTab({ onUpload }) {
    PLACEHOLDER TAB
 ══════════════════════════════════════════════════════════════════════════ */
 function PlaceholderTab({ label }) {
-    return <div className="cp-placeholder"><p className="cp-placeholder-text">{label} — скоро буде доступно</p></div>;
+    return <div className="cp-placeholder"><p className="cp-placeholder-text">{label} - скоро буде доступно</p></div>;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -633,7 +633,7 @@ export default function ControlPanelPage({ user }) {
             case "home":        return <HomeTab />;
             case "analytics":   return <AnalyticsTab />;
             case "materials":   return <MaterialsTab onUpload={() => navigate("/upload")} />;
-            case "channel":     return <PlaceholderTab label="Канал" />;
+            case "channel":     navigate("/profile"); return null;;
             case "upload": return <UploadVideoPage />;
             default:            return <HomeTab />;
         }
