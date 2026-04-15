@@ -1,4 +1,4 @@
-# Streaming Platform 🎥
+# Gleam
 
 A full-stack live streaming and video sharing platform built with React, Express, PostgreSQL, and Socket.io. Stream live with OBS using RTMP to HLS conversion, chat in real-time, and share videos with the community.
 
